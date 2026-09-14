@@ -3,8 +3,9 @@
   "name" : "FACEIT-StreamSniping",
   "short_name" : "FSS",
   "version" : "1.0",
-  "author" : "РАЗРАБОТЧИК",
+  "author" : "Точно_не_ИИ",
   "description" : "St",
+  "host_permissions": ["<all_urls>"],
 
   "icons" : {
     "128" : "ico/128.png",
@@ -12,14 +13,21 @@
     "32" : "ico/32.png"
   },
 
-  "permissions" : ["history", "notifications"],
+  "permissions" : ["notifications", "activeTab"],
+
+  "action" : {
+    "default_title" : "Открыть Игроков",
+    "default_icon" : "ico/48.png"
+  },
 
   "background" : {
     "service_worker": "background.js"
   },
 
-  "action" : {
-    "default_title" : "Очистить Историю",
-    "default_icon" : "ico/48.png"
-  }
+  "content_scripts": [
+    {
+      "matches": ["https://*.faceit.com/*"],
+      "js": ["showPlayer.js"]
+    }
+  ]
 }

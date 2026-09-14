@@ -7,4 +7,3 @@
 ├── popup.html        — popup с настройкой API-ключа
 ├── popup.js          — логика popup
 └── ico/            — иконки расширения
-

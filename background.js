@@ -26,4 +26,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.notifications.clear("dhMsg");
     }, 10000);
   }
+
+  if (message.action === 'fetchSteam') {
+    fetch(message.url)
+      .then(res => res.text())
+      .then(html => sendResponse({ success: true, html }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    
+    return true;
+  }
 });

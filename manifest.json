@@ -13,11 +13,12 @@
     "32" : "ico/32.png"
   },
 
-  "permissions" : ["notifications", "activeTab"],
+  "permissions" : ["storage", "notifications", "activeTab"],
 
   "action" : {
     "default_title" : "Открыть Игроков",
-    "default_icon" : "ico/48.png"
+    "default_icon" : "ico/48.png",
+    "default_popup": "html/main.html"
   },
 
   "background" : {

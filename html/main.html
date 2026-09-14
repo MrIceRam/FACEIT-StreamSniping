@@ -1,11 +1,82 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Image Grabber</title>
-        <link rel="stylesheet" type="text/css" href="main.css"/>
-    </head>
-    <body>
-        <h1>dassda</h1>
-        
-    </body>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Faceit</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background:linear-gradient(#060606,#121212) ;
+    color: #eee;
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 42px;
+    margin: 0 0 40px 0;
+    color: #ff4b00;
+    letter-spacing: 2px;
+  }
+
+  .columns {
+    display: flex;
+    gap: 60px;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    min-width: 180px;
+  }
+
+  .column div {
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(#002134,#072739);
+  }
+
+  .column.right div {
+    background: linear-gradient(#082d07,#012700);
+  }
+</style>
+</head>
+<body>
+
+<h1>Faceit</h1>
+
+<div class="columns">
+  <div class="column">
+    <div>Name1</div>
+    <div>Name2</div>
+    <div>Name3</div>
+    <div>Name4</div>
+    <div>Name5</div>
+  </div>
+  <div class="column right">
+    <div>Name6</div>
+    <div>Name7</div>
+    <div>Name8</div>
+    <div>Name9</div>
+    <div>Name10</div>
+  </div>
+</div>
+
+</body>
 </html>

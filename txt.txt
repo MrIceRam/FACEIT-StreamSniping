@@ -1,9 +1,0 @@
-Примерная структура:
-
-├── manifest.json     — манифест (Manifest V3)
-├── background.js     — фоновый воркер: запросы к FACEIT API
-├── content.js        — контент-скрипт: оверлей на странице матча
-├── styles.css        — стили оверлея
-├── popup.html        — popup с настройкой API-ключа
-├── popup.js          — логика popup
-└── ico/            — иконки расширения

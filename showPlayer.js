@@ -1,4 +1,7 @@
+playersMap = {};
+
 async function checkPlayersInLobby() {
+    
     // 1. Проверяем, что мы в лобби матча
     const url = window.location.href;
     const matchIdMatch = url.match(/\/room\/([a-f0-9-]+)/i);
@@ -18,6 +21,8 @@ async function checkPlayersInLobby() {
         const matchData = await matchResponse.json();
 
         // Собираем всех игроков из обеих команд
+        console.log("TEST")
+        clearMatchData()
         const roster1 = matchData.payload.teams.faction1.roster || [];
         const roster2 = matchData.payload.teams.faction2.roster || [];
         const allPlayers = [...roster1, ...roster2];
@@ -25,9 +30,13 @@ async function checkPlayersInLobby() {
 
         // 3. Проверяем каждого игрока
         for (let i = 0; i < allPlayers.length; i++) {
+            const playerTeam = i < roster1.length ? 1 : 2;
             const player = allPlayers[i];
             const playerId = player.id;
             const playerNickname = player.nickname;
+            FoundTw = false
+            FoundYt = false
+            registerPlayer(playerNickname, playerTeam)
             try {
                 const profileResponse = await fetch(`https://www.faceit.com/api/users/v1/users/${playerId}`);
                 const profileData = await profileResponse.json();
@@ -37,29 +46,41 @@ async function checkPlayersInLobby() {
                 //tw from faceit
                 try {
                     console.log(`Checking [${i + 1}/10] ${playerNickname} — ${profile.streaming ? profile.streaming.twitch_id : "Not Streamer"}`);
-                    if(profile.streaming){
-                        console.log(await checkStreamSimple(profile.streaming.twitch_id) ? `Faceit https://twitch.tw/${profile.streaming.twitch_id} ONLINE` : "Faceit Twitch Offline")
-                    }
+                    if(await checkStreamSimple(profile?.streaming?.twitch_id)){
+                        HideEnemy(profile?.streaming?.twitch_id,"TW")
+                        console.log("Faceit Twitch Online")
+                        setPlayerTwitch(playerNickname, `https://www.twitch.tv/${profile?.streaming?.twitch_id}`)
+                        FoundTw = true
+                    }else{console.log("Faceit Twitch Offline")}
                     
                 }catch (e){
-                    console.log("TW F error")
+                    console.log("TW F error: " + e)
                 }
                 
                 //yt from faceit
                 try {
-                    console.log(`Checking [${i + 1}/10] ${playerNickname} — ${profile.socials && profile.socials.youtube ? profile.socials.youtube.value : "No Faceit Yt"}`);
-                    const ytUrl = profile.socials?.youtube?.value;
+                    console.log(`Checking [${i + 1}/10] ${playerNickname} — ${profile?.socials?.youtube ? profile.socials.youtube.value : "No Faceit Yt"}`);
+                    const ytUrl = profile?.socials?.youtube?.value;
                     if (ytUrl) {
-                        const isLive = await checkLiveStatusByScraping(ytUrl);
+                        const cleanHandle = ytUrl
+                        .trim()
+                        .replace(/\/+$/, '')
+                        .split('/')         
+                        .pop()              
+                        .replace(/^@/, '');
+                        const isLive = await checkLiveStatusByScraping(cleanHandle);
                         
                         if (isLive) {
-                            console.log("WIN " + ytUrl);
+                            console.log("Faceut YouTube Online  " + ytUrl);
+                            HideEnemy(cleanHandle,"YT")
+                            setPlayerYoutube(playerNickname, ytUrl)
+                            FoundYt = true
                         } else {
-                            console.log("losse");
+                            console.log("Faceut YouTube Offline");
                         }
                     }
                 }catch (e){
-                    console.log("YT F error")
+                    console.log("YT F error: " + e)
                 }
 
                 //tw from steam https://steamcommunity.com/profiles/
@@ -86,18 +107,39 @@ async function checkPlayersInLobby() {
                         //console.log(uniqueLinks) //all links
 
                         for(let j = 0; j < uniqueLinks.length; j++){
-                            //tv
+                            
+                            //TW
                             if(uniqueLinks[j].includes("https://www.twitch.tv/") || uniqueLinks[j].includes("https://twitch.tv/")){
                                 const twchannel = uniqueLinks[j].trim().replace(/\/+$/, '').split('/').pop().split('?')[0];
-                                console.log(await checkStreamSimple(twchannel) ? `Steam ${uniqueLinks[j]} ONLINE` : "Steam Twitch Offline")
+                                const isLive = await checkStreamSimple(twchannel);
+                                if(isLive){
+                                    console.log(`Steam ${uniqueLinks[j]} ONLINE`)
+                                    HideEnemy(twchannel,"TW")
+                                    if(!FoundTw)
+                                        setPlayerTwitch(playerNickname, uniqueLinks[j])
+                                }
+                                else{
+                                    console.log("Steam Twitch Offline")
+                                }
                             }
-                            //yt
+
+                            //YT
                             if(uniqueLinks[j].includes("https://www.youtube.com/") || uniqueLinks[j].includes("https://youtube.com/")){
                                 const ytUrl = uniqueLinks[j];
                                 if (ytUrl) {
-                                    const isLive = await checkLiveStatusByScraping(ytUrl);
+                                    const cleanHandle = ytUrl
+                                    .trim()
+                                    .replace(/\/+$/, '')   // убираем слэш на конце
+                                    .split('/')            // разбиваем по слэшам
+                                    .pop()                 // забираем последнюю часть ("@MrIceRam")
+                                    .replace(/^@/, '');    // отрезаем собачку ("MrIceRam")
+
+                                    const isLive = await checkLiveStatusByScraping(cleanHandle);
                                     if (isLive) {
+                                        HideEnemy(cleanHandle,"YT")
                                         console.log("Steam " + ytUrl + " ONLINE");
+                                        if(!FoundYt)
+                                            setPlayerYoutube(playerNickname, uniqueLinks[j])
                                     } else {
                                         console.log("Steam Youtube Offline");
                                     }
@@ -107,17 +149,17 @@ async function checkPlayersInLobby() {
                     }
                 }
                 catch (e){
-                    console.log("68 steam error")
+                    console.log("123 steam error: " + e)
                 }
             }catch(e){
-                console.log("71 error")
+                console.log("126 error: " + e)
             }
 
         await new Promise(resolve => setTimeout(resolve, 500));//делей
         }
     }
     catch(error){
-        console.log("error")
+        console.log("error: " + error)
     }
 }
 setTimeout(checkPlayersInLobby, 3000);
@@ -158,16 +200,9 @@ function cleanSteamLink(rawHref) {
 
 
 // IF YT live
-async function checkLiveStatusByScraping(channelHandle) {
+async function checkLiveStatusByScraping(Nickname) {
   // Вытаскиваем только ник (@MrIceRam) из полной ссылки и убираем собачку @
-  const cleanHandle = channelHandle
-    .trim()
-    .replace(/\/+$/, '')   // убираем слэш на конце
-    .split('/')            // разбиваем по слэшам
-    .pop()                 // забираем последнюю часть ("@MrIceRam")
-    .replace(/^@/, '');    // отрезаем собачку ("MrIceRam")
-
-  const url = `https://www.youtube.com/@${cleanHandle}/live`;
+  const url = `https://www.youtube.com/@${Nickname}/live`;
   
   try {
     const response = await chrome.runtime.sendMessage({
@@ -190,5 +225,53 @@ async function checkLiveStatusByScraping(channelHandle) {
   } catch (error) {
     console.error('Ошибка при проверке:', error);
     return false;
+  }
+}
+
+function HideEnemy(name,x){
+    chrome.runtime.sendMessage({
+        action: 'SHOW_NOTIF',
+        message: `${name}: ${x}`,
+    });
+}
+
+function clearMatchData() {
+  playersMap = {};
+
+  chrome.storage.local.remove('faceitTeams', () => {
+    console.log("Данные прошлого матча очищены!");
+  });
+}
+
+function saveToStorage() {
+  const matchPlayers = Object.values(playersMap);
+  
+  chrome.storage.local.set({ faceitTeams: matchPlayers }, () => {
+    console.log("Сохранено игроков:", matchPlayers.length);
+  });
+}
+
+function registerPlayer(nickname, teamNumber) {
+  if (!playersMap[nickname]) {
+    playersMap[nickname] = {
+      name: nickname,
+      team: teamNumber, // 1 или 2
+      twitch: null,
+      youtube: null
+    };
+  }
+}
+
+function setPlayerTwitch(nickname, twitchUrl) {
+  if (playersMap[nickname]) {
+    playersMap[nickname].twitch = twitchUrl;
+    saveToStorage();
+  }
+}
+
+function setPlayerYoutube(nickname, ytUrl) {
+  if (playersMap[nickname]) {
+    playersMap[nickname].youtube = ytUrl;
+    saveToStorage();
   }
 }

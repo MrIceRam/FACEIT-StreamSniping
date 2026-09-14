@@ -27,6 +27,12 @@ async function checkPlayersInLobby() {
         const roster2 = matchData.payload.teams.faction2.roster || [];
         const allPlayers = [...roster1, ...roster2];
 
+        allPlayers.forEach((player, i) => {
+            const playerTeam = i < roster1.length ? 1 : 2;
+            registerPlayer(player.nickname, playerTeam);
+        });
+        saveToStorage(); // Сразу сохраняем все 10 ников в попап!
+
 
         // 3. Проверяем каждого игрока
         for (let i = 0; i < allPlayers.length; i++) {
@@ -36,7 +42,6 @@ async function checkPlayersInLobby() {
             const playerNickname = player.nickname;
             FoundTw = false
             FoundYt = false
-            registerPlayer(playerNickname, playerTeam)
             try {
                 const profileResponse = await fetch(`https://www.faceit.com/api/users/v1/users/${playerId}`);
                 const profileData = await profileResponse.json();

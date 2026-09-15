@@ -4,7 +4,7 @@
   "short_name" : "FSS",
   "version" : "1.0",
   "author" : "Точно_не_ИИ",
-  "description" : "St",
+  "description" : "StreamSniping-FACEIT",
   "host_permissions": ["<all_urls>"],
 
   "icons" : {

@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     setTimeout(() => {
       chrome.notifications.clear("dhMsg");
-    }, 10000);
+    }, 30000);
   }
 
   if (message.action === 'fetchSteam') {// voix

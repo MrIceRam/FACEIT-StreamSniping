@@ -2,7 +2,173 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="popup.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      width: 450px;
+      background-color: #0e0e10;
+      color: #efeff1;
+      padding: 12px;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #ff5500;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background-color: #ff5500;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255, 85, 0, 0.7);
+    }
+
+    /* СЕТКА НА 2 КОМАНДЫ (СЛЕВА И СПРАВА) */
+    .teams-container {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px;
+    }
+
+    .team-card {
+      background: #18181b;
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid #26262c;
+    }
+
+    .team-faction1 { border-top: 3px solid #00d2ff; }
+    .team-faction2 { border-top: 3px solid #ff4d4d; }
+
+    .team-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .team-faction1 .team-title {
+      color: #00d2ff;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .team-faction2 .team-title {
+      color: #ff4d4d;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .player-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1f1f23;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      min-height: 36px;
+    }
+
+    .player-name {
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 115px;
+    }
+
+    .links {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    /* ФИКС ОГРОМНЫХ ИКОНОК */
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px !important;
+      height: 24px !important;
+      max-width: 24px !important;
+      max-height: 24px !important;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .btn-icon:hover {
+      transform: scale(1.1);
+    }
+
+    .btn-twitch {
+      background-color: #9146FF;
+    }
+
+    .btn-youtube {
+      background-color: #FF0000;
+    }
+
+    /* ЖЕСТКИЙ РАЗМЕР ДЛЯ SVG */
+    .btn-icon svg {
+      width: 14px !important;
+      height: 14px !important;
+      max-width: 14px !important;
+      max-height: 14px !important;
+      fill: #fff !important;
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px 10px;
+    }
+
+    .empty-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #efeff1;
+    }
+
+    .empty-sub {
+      font-size: 11px;
+      color: #71717a;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
   <div class="app-header">
@@ -13,7 +179,7 @@
   </div>
 
   <div id="teamsContainer" class="teams-container" style="display: none;">
-    <!-- Команда 1 -->
+    <!-- Команда 1 (СЛЕВА) -->
     <div class="team-card team-faction1">
       <div class="team-header">
         <span class="team-title">Faction 1</span>
@@ -21,7 +187,7 @@
       <div class="players-list" id="team1List"></div>
     </div>
 
-    <!-- Команда 2 -->
+    <!-- Команда 2 (СПРАВА) -->
     <div class="team-card team-faction2">
       <div class="team-header">
         <span class="team-title">Faction 2</span>

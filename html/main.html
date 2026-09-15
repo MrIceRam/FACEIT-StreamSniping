@@ -12,161 +12,451 @@
     }
 
     body {
-      width: 450px;
-      background-color: #0e0e10;
+      width: 460px;
+      max-height: 580px;
+      overflow-y: auto;
+      background-color: #0b0b0f;
       color: #efeff1;
-      padding: 12px;
     }
 
+    body::-webkit-scrollbar {
+      width: 8px;
+    }
+    body::-webkit-scrollbar-thumb {
+      background: #2e2e38;
+      border-radius: 4px;
+    }
+
+    /* ── ШАПКА ── */
     .app-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      background: linear-gradient(180deg, #14141b 0%, #0b0b0f 100%);
+      border-bottom: 1px solid #1e1e27;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11px;
+      gap: 8px;
+      font-size: 12px;
       font-weight: 800;
-      letter-spacing: 1px;
-      color: #ff5500;
+      letter-spacing: 1.5px;
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      background-color: #ff5500;
+    .logo .dot {
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(255, 85, 0, 0.7);
+      background: #ff7a1a;
+      box-shadow: 0 0 10px rgba(255, 122, 26, 0.8);
     }
 
-    /* СЕТКА НА 2 КОМАНДЫ (СЛЕВА И СПРАВА) */
+    .logo .sub {
+      color: #6f6f7b;
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: #1c1c24;
+      color: #8f8f9a;
+      border: 1px solid #2a2a35;
+    }
+
+    .status-pill .spinner {
+      width: 10px;
+      height: 10px;
+      border: 2px solid #4a4a58;
+      border-top-color: #ff7a1a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .status-pill.scanning { color: #ffb86c; border-color: #3a2f22; }
+    .status-pill.done { color: #58d68d; border-color: #1f3a2a; }
+    .status-pill.error { color: #ff6b6b; border-color: #3a1f1f; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: #1c1c24;
+      border: 1px solid #2a2a35;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+      color: #c9c9d4;
+    }
+
+    .btn-refresh:hover {
+      background: #262631;
+      transform: rotate(-40deg);
+    }
+
+    .btn-refresh svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    /* ── ПРОГРЕСС ── */
+    .progress-wrap {
+      display: none;
+      padding: 8px 16px;
+      background: #0e0e14;
+      border-bottom: 1px solid #17171f;
+    }
+
+    .progress-wrap.visible { display: block; }
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #8f8f9a;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .progress-text .current { color: #ffb86c; }
+
+    .progress-bar {
+      height: 5px;
+      border-radius: 3px;
+      background: #1c1c24;
+      overflow: hidden;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #ff7a1a, #ffb86c);
+      transition: width 0.3s ease;
+    }
+
+    /* ── КОНТЕНТ ── */
+    .content {
+      padding: 12px 16px 16px;
+    }
+
     .teams-container {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr !important;
-      gap: 10px;
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .teams-container.visible {
+      display: grid;
     }
 
     .team-card {
-      background: #18181b;
-      border-radius: 8px;
-      padding: 10px;
-      border: 1px solid #26262c;
+      background: #13131a;
+      border: 1px solid #20202a;
+      border-radius: 12px;
+      overflow: hidden;
     }
 
-    .team-faction1 { border-top: 3px solid #00d2ff; }
-    .team-faction2 { border-top: 3px solid #ff4d4d; }
-
-    .team-header {
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .team-faction1 .team-title {
-      color: #00d2ff;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .team-faction2 .team-title {
-      color: #ff4d4d;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .players-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .player-item {
+    .team-card .team-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background: #1f1f23;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      min-height: 36px;
-    }
-
-    .player-name {
-      font-size: 12px;
-      font-weight: 600;
+      gap: 7px;
+      padding: 9px 11px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 115px;
+    }
+
+    .team-card .team-header::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .team-faction1 .team-header {
+      color: #4dc3ff;
+      background: rgba(0, 190, 255, 0.06);
+    }
+    .team-faction1 .team-header::before {
+      background: #00bef0;
+      box-shadow: 0 0 8px rgba(0, 190, 255, 0.7);
+    }
+
+    .team-faction2 .team-header {
+      color: #ff6b6b;
+      background: rgba(255, 70, 70, 0.06);
+    }
+    .team-faction2 .team-header::before {
+      background: #ff5252;
+      box-shadow: 0 0 8px rgba(255, 82, 82, 0.7);
+    }
+
+    .players-list {
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* ── ИГРОК ── */
+    .player-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: #17171f;
+      border: 1px solid #22222d;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .player-item:hover {
+      background: #1c1c26;
+      border-color: #2e2e3c;
+    }
+
+    .player-item.live-twitch {
+      border-color: rgba(145, 70, 255, 0.55);
+      background: linear-gradient(90deg, rgba(145, 70, 255, 0.10), #17171f 60%);
+    }
+
+    .player-item.live-youtube {
+      border-color: rgba(255, 0, 0, 0.5);
+      background: linear-gradient(90deg, rgba(255, 0, 0, 0.10), #17171f 60%);
+    }
+
+    .avatar {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+      background-color: #23232e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .avatar .init {
+      font-size: 14px;
+      font-weight: 800;
+      color: #8f8f9a;
+    }
+
+    .player-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .player-name {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #efeff1;
+      white-space: nowrap;
+    }
+
+    .player-name .text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .level-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 5px;
+      font-size: 9px;
+      font-weight: 800;
+      color: #1b1b22;
+      flex-shrink: 0;
+    }
+
+    .level-1  { background: #8a8a96; }
+    .level-2  { background: #6ab04c; }
+    .level-3  { background: #5fae8c; }
+    .level-4  { background: #00cec9; }
+    .level-5  { background: #0984e3; }
+    .level-6  { background: #6c5ce7; }
+    .level-7  { background: #a16cd4; }
+    .level-8  { background: #e17055; }
+    .level-9  { background: #e84393; }
+    .level-10 { background: #ff9f1a; }
+
+    .player-status {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .player-status.idle { color: #61616c; }
+    .player-status.live { color: #ff5c5c; }
+    .player-status.live .blink {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff2d2d;
+      margin-right: 4px;
+      animation: blink 1s infinite;
+    }
+
+    .player-status.none { color: #3d3d49; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
     }
 
     .links {
       display: flex;
       gap: 5px;
-      align-items: center;
+      flex-shrink: 0;
     }
 
-    /* ФИКС ОГРОМНЫХ ИКОНОК */
     .btn-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 24px !important;
-      height: 24px !important;
-      max-width: 24px !important;
-      max-height: 24px !important;
-      border-radius: 5px;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
       cursor: pointer;
-      transition: transform 0.15s;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
 
     .btn-icon:hover {
-      transform: scale(1.1);
+      transform: scale(1.12);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
     }
 
-    .btn-twitch {
-      background-color: #9146FF;
-    }
-
-    .btn-youtube {
-      background-color: #FF0000;
-    }
-
-    /* ЖЕСТКИЙ РАЗМЕР ДЛЯ SVG */
     .btn-icon svg {
-      width: 14px !important;
-      height: 14px !important;
-      max-width: 14px !important;
-      max-height: 14px !important;
-      fill: #fff !important;
+      width: 13px;
+      height: 13px;
+      fill: #fff;
       display: block;
     }
 
+    .btn-icon.disabled {
+      opacity: 0.35;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .btn-twitch { background-color: #9146FF; }
+    .btn-youtube { background-color: #FF0000; }
+
+    /* ── ПУСТОЕ СОСТОЯНИЕ ── */
     .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      padding: 30px 10px;
+      padding: 44px 24px 34px;
     }
 
     .empty-icon {
-      font-size: 28px;
-      margin-bottom: 8px;
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: #16161f;
+      border: 1px solid #24242f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      margin-bottom: 14px;
     }
 
     .empty-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #efeff1;
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .empty-sub {
       font-size: 11px;
       color: #71717a;
-      margin-top: 4px;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .empty-hint {
+      font-size: 11px;
+      color: #4a4a56;
+      margin-top: 14px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #12121a;
+      border: 1px dashed #26262f;
+      line-height: 1.5;
+    }
+
+    .btn-open {
+      margin-top: 18px;
+      padding: 9px 18px;
+      border-radius: 9px;
+      border: none;
+      background: linear-gradient(180deg, #ff8c2e, #ff6a00);
+      color: #1b1b22;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 4px 14px rgba(255, 106, 0, 0.3);
+    }
+
+    .btn-open:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(255, 106, 0, 0.42);
+    }
+
+    .footer {
+      padding: 10px 16px 12px;
+      border-top: 1px solid #16161f;
+      font-size: 10px;
+      color: #4a4a56;
+      text-align: center;
     }
   </style>
 </head>
@@ -175,32 +465,48 @@
     <div class="logo">
       <span class="dot"></span>
       FACEIT LIVE STREAMS
+      <span class="sub">STREAM SNIPER</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div id="statusPill" class="status-pill"></div>
+      <button id="btnRefresh" class="btn-refresh" title="Сканировать заново">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+      </button>
     </div>
   </div>
 
-  <div id="teamsContainer" class="teams-container" style="display: none;">
-    <!-- Команда 1 (СЛЕВА) -->
-    <div class="team-card team-faction1">
-      <div class="team-header">
-        <span class="team-title">Faction 1</span>
+  <div id="progressWrap" class="progress-wrap">
+    <div class="progress-text">
+      <span id="progressLabel">Проверка игроков...</span>
+      <span id="progressCount" class="current"></span>
+    </div>
+    <div class="progress-bar"><div id="progressFill" class="fill"></div></div>
+  </div>
+
+  <div class="content">
+    <div id="teamsContainer" class="teams-container">
+      <div class="team-card team-faction1">
+        <div class="team-header" id="team1Title">Команда 1</div>
+        <div class="players-list" id="team1List"></div>
       </div>
-      <div class="players-list" id="team1List"></div>
-    </div>
-
-    <!-- Команда 2 (СПРАВА) -->
-    <div class="team-card team-faction2">
-      <div class="team-header">
-        <span class="team-title">Faction 2</span>
+      <div class="team-card team-faction2">
+        <div class="team-header" id="team2Title">Команда 2</div>
+        <div class="players-list" id="team2List"></div>
       </div>
-      <div class="players-list" id="team2List"></div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">🎮</div>
+      <div class="empty-text">Откройте комнату матча Faceit</div>
+      <div class="empty-sub">Расширение само определит игроков и проверит стримы</div>
+      <div class="empty-hint">
+        Требуется страница вида<br><b>faceit.com/room/…</b>
+      </div>
+      <button id="btnOpenFaceit" class="btn-open">Открыть Faceit</button>
     </div>
   </div>
 
-  <div id="emptyState" class="empty-state">
-    <div class="empty-icon">🎮</div>
-    <div class="empty-text">Откройте комнату матча Faceit</div>
-    <div class="empty-sub">Данные загрузятся автоматически</div>
-  </div>
+  <div class="footer" id="footerText">Анализ и проверка каналов в реальном времени</div>
 
   <script src="popup.js"></script>
 </body>

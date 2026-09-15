@@ -51,7 +51,7 @@ async function checkPlayersInLobby() {
                 //tw from faceit
                 try {
                     console.log(`Checking [${i + 1}/10] ${playerNickname} — ${profile.streaming ? profile.streaming.twitch_id : "Not Streamer"}`);
-                    if(await checkStreamSimple(profile?.streaming?.twitch_id)){
+                    if(await checkLiveTV(profile?.streaming?.twitch_id)){
                         HideEnemy(profile?.streaming?.twitch_id,"TW")
                         console.log("Faceit Twitch Online")
                         setPlayerTwitch(playerNickname, `https://www.twitch.tv/${profile?.streaming?.twitch_id}`)
@@ -73,7 +73,7 @@ async function checkPlayersInLobby() {
                         .split('/')         
                         .pop()              
                         .replace(/^@/, '');
-                        const isLive = await checkLiveStatusByScraping(cleanHandle);
+                        const isLive = await checkLiveYT(cleanHandle);
                         
                         if (isLive) {
                             console.log("Faceut YouTube Online  " + ytUrl);
@@ -116,7 +116,7 @@ async function checkPlayersInLobby() {
                             //TW
                             if(uniqueLinks[j].includes("https://www.twitch.tv/") || uniqueLinks[j].includes("https://twitch.tv/")){
                                 const twchannel = uniqueLinks[j].trim().replace(/\/+$/, '').split('/').pop().split('?')[0];
-                                const isLive = await checkStreamSimple(twchannel);
+                                const isLive = await checkLiveTV(twchannel);
                                 if(isLive){
                                     console.log(`Steam ${uniqueLinks[j]} ONLINE`)
                                     HideEnemy(twchannel,"TW")
@@ -139,7 +139,7 @@ async function checkPlayersInLobby() {
                                     .pop()                 // забираем последнюю часть ("@MrIceRam")
                                     .replace(/^@/, '');    // отрезаем собачку ("MrIceRam")
 
-                                    const isLive = await checkLiveStatusByScraping(cleanHandle);
+                                    const isLive = await checkLiveYT(cleanHandle);
                                     if (isLive) {
                                         HideEnemy(cleanHandle,"YT")
                                         console.log("Steam " + ytUrl + " ONLINE");
@@ -154,13 +154,25 @@ async function checkPlayersInLobby() {
                     }
                 }
                 catch (e){
-                    console.log("123 steam error: " + e)
+                    console.log("tw from steam error: " + e)
                 }
+
+                try{//try hide tw or twitch for nike
+                  if(checkLiveTV(playerNickname)){//try hide tw
+                    console.log(playerNickname + "СТИРМИТ НА TW")
+                  }
+                  if(checkLiveYT(playerNickname)){//try hide YT
+                    console.log(playerNickname + "СТИРМИТ НА YT")
+                  }
+                }catch(e){
+                console.log("126 error: " + e)
+            }
             }catch(e){
                 console.log("126 error: " + e)
             }
 
-        await new Promise(resolve => setTimeout(resolve, 500));//делей
+        //await new Promise(resolve => setTimeout(resolve, 500));//делей
+        await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 400));// google ai
         }
     }
     catch(error){
@@ -169,9 +181,8 @@ async function checkPlayersInLobby() {
 }
 setTimeout(checkPlayersInLobby, 3000);
 
-
 // IF TV live
-async function checkStreamSimple(channelName) {
+async function checkLiveTV(channelName) {
   try {
     const response = await fetch(`https://decapi.me/twitch/uptime/${channelName}`);
     if (!response.ok) return false;
@@ -187,25 +198,8 @@ async function checkStreamSimple(channelName) {
   }
 }
 
-
-
-function cleanSteamLink(rawHref) {
-  if (!rawHref) return null;
-  try {
-    const url = new URL(rawHref, 'https://steamcommunity.com');
-    if (url.pathname.includes('/linkfilter')) {
-      const target = url.searchParams.get('u') || url.searchParams.get('url');
-      return target ? decodeURIComponent(target) : rawHref;
-    }
-    return rawHref;
-  } catch {
-    return rawHref;
-  }
-}
-
-
 // IF YT live
-async function checkLiveStatusByScraping(Nickname) {
+async function checkLiveYT(Nickname) {
   // Вытаскиваем только ник (@MrIceRam) из полной ссылки и убираем собачку @
   const url = `https://www.youtube.com/@${Nickname}/live`;
   
@@ -278,5 +272,19 @@ function setPlayerYoutube(nickname, ytUrl) {
   if (playersMap[nickname]) {
     playersMap[nickname].youtube = ytUrl;
     saveToStorage();
+  }
+}
+
+function cleanSteamLink(rawHref) {
+  if (!rawHref) return null;
+  try {
+    const url = new URL(rawHref, 'https://steamcommunity.com');
+    if (url.pathname.includes('/linkfilter')) {
+      const target = url.searchParams.get('u') || url.searchParams.get('url');
+      return target ? decodeURIComponent(target) : rawHref;
+    }
+    return rawHref;
+  } catch {
+    return rawHref;
   }
 }

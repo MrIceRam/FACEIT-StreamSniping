@@ -21,13 +21,15 @@ function createPlayerRow(player) {
   avatar.className = "avatar";
   row.appendChild(avatar);
 
-  const init = document.createElement("span");
-  init.className = "init";
-  init.textContent = avatarInit(player.name);
-  avatar.appendChild(init);
-
+  // Если есть аватарка — показываем картинку, букву НЕ добавляем.
+  // Если аватарки нет — показываем первую букву ника.
   if (player.avatar) {
     avatar.style.backgroundImage = `url("${player.avatar}")`;
+  } else {
+    const init = document.createElement("span");
+    init.className = "init";
+    init.textContent = avatarInit(player.name);
+    avatar.appendChild(init);
   }
 
   const meta = document.createElement("div");
@@ -58,9 +60,18 @@ function createPlayerRow(player) {
   meta.appendChild(status);
 
   if (player.live) {
+    // Цвет рамки зависит от платформы.
     row.classList.add(player.live === "twitch" ? "live-twitch" : "live-youtube");
+    // Похожее совпадение помечаем отдельным классом (пунктир).
+    if (player.liveConfidence === "similar") row.classList.add("live-similar");
+
     status.className = "player-status live";
-    status.innerHTML = `<span class="blink"></span>LIVE — ${player.live === "twitch" ? "Twitch" : "YouTube"}`;
+    const plat = player.live === "twitch" ? "Twitch" : "YouTube";
+    const mark = player.liveConfidence === "similar" ? " (похож.)" : "";
+    status.innerHTML = `<span class="blink"></span>LIVE — ${plat}${mark}`;
+    if (player.liveConfidence === "similar") {
+      status.title = "Совпадение по похожему никнейму — может быть не тот человек";
+    }
   } else if (player.twitch || player.youtube) {
     status.className = "player-status none";
     status.textContent = "Канал оффлайн";
@@ -123,12 +134,18 @@ function render(players, scan) {
 }
 
 function renderTeams(players, scan) {
-  const t1 = $("team1Title");
-  const t2 = $("team2Title");
-  const team1Player = players.find((p) => p.team === 1);
-  const team2Player = players.find((p) => p.team === 2);
-  t1.textContent = team1Player?.teamName || "Команда 1";
-  t2.textContent = team2Player?.teamName || "Команда 2";
+  chrome.storage.local.get(["myTeamNumber"], ({ myTeamNumber }) => {
+    const t1 = $("team1Title");
+    const t2 = $("team2Title");
+    const team1Player = players.find((p) => p.team === 1);
+    const team2Player = players.find((p) => p.team === 2);
+
+    const t1Name = team1Player?.teamName || "Команда 1";
+    const t2Name = team2Player?.teamName || "Команда 2";
+
+    t1.textContent = t1Name + (myTeamNumber === 1 ? " (вы)" : "");
+    t2.textContent = t2Name + (myTeamNumber === 2 ? " (вы)" : "");
+  });
 }
 
 function renderProgress(scan) {
@@ -148,6 +165,7 @@ function renderProgress(scan) {
   if (scan.state === "match") label = "Получение данных матча...";
   else if (scan.state === "profiles") label = "Загрузка профилей...";
   else if (scan.state === "checking") label = `Проверка: ${scan.current || "..."}`;
+  else if (scan.state === "similar") label = `Похожие ники: ${scan.current || "..."}`;
   else if (scan.state === "error") label = "Ошибка загрузки";
   else label = "Проверка игроков...";
 
@@ -161,7 +179,11 @@ function renderStatus(scan) {
   if (scan?.running) {
     pill.className = "status-pill scanning";
     pill.innerHTML = '<span class="spinner"></span>Сканирование';
-    footer.textContent = scan.current ? `Анализ: ${scan.current}` : "Анализ...";
+    if (scan.state === "similar") {
+      footer.textContent = scan.current ? `Похожие ники: ${scan.current}` : "Поиск похожих ников...";
+    } else {
+      footer.textContent = scan.current ? `Анализ: ${scan.current}` : "Анализ...";
+    }
   } else if (scan?.state === "done") {
     pill.className = "status-pill done";
     pill.textContent = "Готово";

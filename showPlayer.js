@@ -3,6 +3,14 @@ playersMap = {};
 const LIVE_CACHE = new Map();
 const TTL = 60 * 1000;
 
+
+/*  
+ * getLive кэширует не результат, а Promise.  
+ * Если за 60 секунд тот же канал проверяется снова,
+ * вернётся уже существующий Promise. 
+ * Если проверка упала вернётся false.
+*/
+
 function getLive(key, fetchFn) {
   const hit = LIVE_CACHE.get(key);
   if (hit && Date.now() - hit.t < TTL) return Promise.resolve(hit.live);
@@ -24,11 +32,16 @@ async function mapLimit(items, limit, fn) {
   return results;
 }
 
+// Запись прогресса сканирования в chrome.storage.local.
+// Popup подписан на изменения и обновляет прогресс-бар.
 function setScan(scan) {
   chrome.storage.local.set({ scan });
 }
 
-async function checkPlayersInLobby() {
+
+//* Определение matchId
+
+async function checkPlayersInLobby() { 
   const matchIdMatch = window.location.href.match(/\/room\/([a-f0-9-]+)/i);
   if (!matchIdMatch) return;
 
@@ -40,10 +53,12 @@ async function checkPlayersInLobby() {
     clearMatchData();
     setScan({ running: true, state: "match", total: 0, done: 0, current: "Получение данных матча..." });
 
+    // Запрос информации о матче через Faceit API.
     const matchResponse = await fetch(`https://www.faceit.com/api/match/v2/match/${matchId}`);
     const matchPayload = await matchResponse.json();
     const body = matchPayload.payload;
 
+    // Разбираем команды и составы.
     const faction1 = body.teams.faction1;
     const faction2 = body.teams.faction2;
     const roster1 = faction1.roster || [];
@@ -52,6 +67,9 @@ async function checkPlayersInLobby() {
     const team2Name = faction2.name || "Faction 2";
     const allPlayers = [...roster1, ...roster2];
 
+    // Регистрируем каждого игрока: первые roster1.length — команда 1,
+    // остальные — команда 2. Затем сохраняем в storage, чтобы popup
+    // сразу показал список игроков.
     allPlayers.forEach((p, i) => {
       const team = i < roster1.length ? 1 : 2;
       registerPlayer(
@@ -65,8 +83,12 @@ async function checkPlayersInLobby() {
     });
     saveToStorage();
 
+    // Статус: загрузка профилей игроков.
     setScan({ running: true, state: "profiles", total: allPlayers.length, done: 0, current: "Загрузка профилей..." });
-
+    
+    // Параллельно (до 5 за раз) тянем профили игроков с Faceit API.
+    // profiles[i] соответствует allPlayers[i].
+    
     const profiles = await mapLimit(allPlayers, 5, async (player) => {
       try {
         const r = await fetch(`https://www.faceit.com/api/users/v1/users/${player.id}`);
@@ -78,6 +100,7 @@ async function checkPlayersInLobby() {
       }
     });
 
+    // Статус: проверка каналов.
     setScan({ running: true, state: "checking", total: allPlayers.length, done: 0, current: "Проверка каналов..." });
 
     await mapLimit(allPlayers, 3, async (player, i) => {
@@ -99,6 +122,8 @@ async function checkPlayersInLobby() {
   }
 }
 
+// Проверка одного игрока: ищет Twitch/YouTube тремя способами —
+// в Faceit-профиле, в Steam-профиле и по нику напрямую.
 async function checkPlayer(player, profile) {
   const nickname = player.nickname;
   const steamId = profile?.platforms?.steam?.id64;
@@ -120,6 +145,7 @@ async function checkPlayer(player, profile) {
     }
   }
 
+    // YouTube из Faceit-профиля 
   const ytUrl = profile?.socials?.youtube?.value;
   if (ytUrl) {
     const handle = cleanHandle(ytUrl);
@@ -135,6 +161,7 @@ async function checkPlayer(player, profile) {
     }
   }
 
+  // Ссылки из Steam-профиля
   if (steamId) {
     const links = await fetchSteamLinks(steamId);
     for (const link of links) {
@@ -148,6 +175,7 @@ async function checkPlayer(player, profile) {
           tw = true;
         }
       }
+      // YouTube-ссылка в Steam-профиле.
       if (link.includes("youtube.com/") && !yt) {
         const handle = cleanHandle(link);
         if (await checkLiveYT(handle)) {
@@ -161,6 +189,7 @@ async function checkPlayer(player, profile) {
     }
   }
 
+  // Fallback: поиск по нику на Twitch
   if (!tw && (await checkLiveTV(nickname))) {
     console.log(nickname + " СТРИМИТ НА TW");
     const url = `https://www.twitch.tv/${nickname}`;
@@ -168,6 +197,7 @@ async function checkPlayer(player, profile) {
     setPlayerTwitch(nickname, url);
     markLIVE(nickname, "twitch");
   }
+  // Fallback: поиск по нику на YouTube
   if (!yt && (await checkLiveYT(nickname))) {
     console.log(nickname + " СТРИМИТ НА YT");
     const url = `https://www.youtube.com/@${Nickname}/live`;
@@ -177,6 +207,8 @@ async function checkPlayer(player, profile) {
   }
 }
 
+// Загружает HTML Steam-профиля через background и вытаскивает
+// все ссылки из блока профиля и showcase-заметок.
 async function fetchSteamLinks(steamId) {
   try {
     const response = await chrome.runtime.sendMessage({

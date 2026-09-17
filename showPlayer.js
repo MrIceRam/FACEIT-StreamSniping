@@ -231,7 +231,7 @@ async function checkLiveTV(channelName) {
       const text = await response.text();
       return !text.toLowerCase().includes("offline");
     } catch (error) {
-      console.error("Ошибка проверки Twitch:", error);
+      console.log("Ошибка проверки Twitch:", error);
       return false;
     }
   });

@@ -55,6 +55,7 @@
       border-radius: 50%;
       background: #ff7a1a;
       box-shadow: 0 0 10px rgba(255, 122, 26, 0.8);
+      animation: blink 1s infinite;
     }
 
     .logo .sub {
@@ -82,13 +83,13 @@
     .status-pill .spinner {
       width: 10px;
       height: 10px;
-      border: 2px solid #4a4a58;
+      border: 2px solid #58554a;
       border-top-color: #ff7a1a;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
 
-    .status-pill.scanning { color: #ffb86c; border-color: #3a2f22; }
+    .status-pill.scanning { color: #ffb86c; border-color: #7a5b35; }
     .status-pill.done { color: #58d68d; border-color: #1f3a2a; }
     .status-pill.error { color: #ff6b6b; border-color: #3a1f1f; }
 
@@ -457,6 +458,11 @@
       font-size: 10px;
       color: #4a4a56;
       text-align: center;
+    }
+
+    .player-item.live-similar {
+      border-style: dashed;
+      opacity: 0.92;
     }
   </style>
 </head>

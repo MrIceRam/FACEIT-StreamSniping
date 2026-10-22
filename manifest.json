@@ -1,34 +1,39 @@
 {
-  "manifest_version" : 3,
-  "name" : "FACEIT-StreamSniping",
-  "short_name" : "FSS",
-  "version" : "1.0",
-  "author" : "Точно_не_ИИ",
-  "description" : "StreamSniping-FACEIT",
-  "host_permissions": ["<all_urls>"],
+  "manifest_version": 3,
+  "name": "FACEIT-StreamSniping",
+  "short_name": "FSS",
+  "version": "1.3",
+  "author": "Точно_не_ИИ",
+  "description": "StreamSniping-FACEIT",
 
-  "icons" : {
-    "128" : "ico/128.png",
-    "48" : "ico/48.png",
-    "32" : "ico/32.png"
+  "icons": {
+    "128": "icons/128.png",
+    "48": "icons/48.png",
+    "32": "icons/32.png"
   },
 
-  "permissions" : ["storage", "notifications", "activeTab"],
+  "permissions": ["storage", "notifications", "activeTab"],
 
-  "action" : {
-    "default_title" : "Открыть Игроков",
-    "default_icon" : "ico/48.png",
-    "default_popup": "html/main.html"
+  "host_permissions": [
+    "https://*.faceit.com/*",
+    "https://steamcommunity.com/*",
+    "https://www.youtube.com/*"
+  ],
+
+  "action": {
+    "default_title": "Открыть Игроков",
+    "default_icon": "icons/48.png",
+    "default_popup": "src/popup/popup.html"
   },
 
-  "background" : {
-    "service_worker": "background.js"
+  "background": {
+    "service_worker": "src/background/background.js"
   },
 
   "content_scripts": [
     {
       "matches": ["https://*.faceit.com/*"],
-      "js": ["nickVariations.js", "showPlayer.js"]
+      "js": ["src/content/nickVariations.js", "src/content/showPlayer.js"]
     }
   ]
 }

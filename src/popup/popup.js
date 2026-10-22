@@ -24,7 +24,7 @@ function createPlayerRow(player) {
   // Если есть аватарка — показываем картинку, букву НЕ добавляем.
   // Если аватарки нет — показываем первую букву ника.
   if (player.avatar) {
-    avatar.style.backgroundImage = `url("${player.avatar}")`;
+    avatar.style.backgroundImage = `url(${JSON.stringify(player.avatar)})`;
   } else {
     const init = document.createElement("span");
     init.className = "init";
@@ -128,12 +128,12 @@ function render(players, scan) {
     });
   }
 
-  renderTeams(players || [], scan);
+  renderTeams(players || []);
   renderProgress(scan);
-  renderStatus(scan, hasPlayers);
+  renderStatus(scan);
 }
 
-function renderTeams(players, scan) {
+function renderTeams(players) {
   chrome.storage.local.get(["myTeamNumber"], ({ myTeamNumber }) => {
     const t1 = $("team1Title");
     const t2 = $("team2Title");

@@ -2,7 +2,7 @@
 
 Расширение для браузера, которое смотрит, кто из игроков в матче Faceit стримит прямо сейчас на Twitch или YouTube.
 
-![version](https://img.shields.io/badge/version-1.2-orange)
+![version](https://img.shields.io/badge/version-1.3-orange)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 ## Зачем это
@@ -50,13 +50,21 @@
 
 Manifest V3, обычное расширение на чистом JS без библиотек.
 
-| Файл | Что делает |
-|------|-----------|
-| `manifest.json` | Конфиг |
-| `background.js` | Service worker. Уведомления и fetch в обход CORS |
-| `showPlayer.js` | Основная логика — работает на странице Faceit |
-| `nickVariations.js` | Генератор похожих ников |
-| `popup.js` и `main.html` | Само окошко расширения |
+```
+FACEIT-StreamSniping/
+├── manifest.json              # Конфиг расширения (Manifest V3)
+├── icons/                     # Иконки 32/48/128
+└── src/
+    ├── background/
+    │   └── background.js      # Service worker: уведомления и fetch в обход CORS
+    ├── content/
+    │   ├── nickVariations.js  # Генератор похожих ников
+    │   └── showPlayer.js      # Основная логика — работает на странице Faceit
+    └── popup/
+        ├── popup.html         # Окошко расширения
+        ├── popup.css          # Стили окошка
+        └── popup.js           # Отрисовка игроков и статуса скана
+```
 
 Общий ход работы:
 

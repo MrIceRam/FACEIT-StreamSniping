@@ -1,11 +1,18 @@
-playersMap = {};
+let playersMap = {};
 
 const LIVE_CACHE = new Map();
 const TTL = 60 * 1000;
 
+// Допустимый логин Twitch: латиница, цифры и "_".
+const TWITCH_LOGIN_RE = /^[a-zA-Z0-9_]{3,25}$/;
+
 // ID последнего отсканированного матча. Нужен, чтобы не сбрасывать
 // состояние при повторном скане того же матча.
 let lastMatchId = null;
+
+// Номер текущего скана. Если запущен новый скан (RESCAN или смена матча),
+// старый видит, что его номер устарел, и перестаёт писать результаты.
+let scanId = 0;
 
 /*
  * getLive кэширует не результат, а Promise.
@@ -32,12 +39,6 @@ async function mapLimit(items, limit, fn) {
   });
   await Promise.all(workers);
   return results;
-}
-
-// Запись прогресса сканирования в chrome.storage.local.
-// Popup подписан на изменения и обновляет прогресс-бар.
-function setScan(scan) {
-  chrome.storage.local.set({ scan });
 }
 
 // ============================================================
@@ -79,13 +80,23 @@ async function getMyFaceitId() {
 // ============================================================
 // ОСНОВНОЙ СЦЕНАРИЙ
 // ============================================================
-async function checkPlayersInLobby() {
-  const matchIdMatch = window.location.href.match(/\/room\/([a-f0-9-]+)/i);
-  if (!matchIdMatch) return;
+function getMatchIdFromUrl() {
+  const m = window.location.href.match(/\/room\/([a-z0-9-]+)/i);
+  return m ? m[1] : null;
+}
 
-  const matchId = matchIdMatch[1];
+async function checkPlayersInLobby() {
+  const matchId = getMatchIdFromUrl();
+  if (!matchId) return;
+
   console.log("========================== НАЙДЕНО ЛОББИ ==========================");
   console.log("ID матча:", matchId);
+
+  const myScan = ++scanId;
+  const isStale = () => myScan !== scanId;
+  const setScan = (scan) => {
+    if (!isStale()) chrome.storage.local.set({ scan });
+  };
 
   // Сбрасываем данные только если это новый матч.
   const sameMatch = matchId === lastMatchId;
@@ -102,7 +113,9 @@ async function checkPlayersInLobby() {
 
     // Запрос информации о матче через Faceit API.
     const matchResponse = await fetch(`https://www.faceit.com/api/match/v2/match/${matchId}`);
+    if (!matchResponse.ok) throw new Error(`match HTTP ${matchResponse.status}`);
     const matchPayload = await matchResponse.json();
+    if (isStale()) return;
     const body = matchPayload.payload;
 
     const faction1 = body.teams.faction1;
@@ -124,6 +137,7 @@ async function checkPlayersInLobby() {
 
     // Определяем свою команду, чтобы сканировать врагов первыми.
     const myFaceitId = await getMyFaceitId();
+    if (isStale()) return;
     const meInFaction1 = myFaceitId && roster1.some((p) => p.id === myFaceitId);
     const meInFaction2 = myFaceitId && roster2.some((p) => p.id === myFaceitId);
 
@@ -152,6 +166,7 @@ async function checkPlayersInLobby() {
 
     // Профили грузим в том же порядке — profiles[i] соответствует allPlayers[i].
     profiles = await mapLimit(allPlayers, 5, async (player) => {
+      if (isStale()) return null;
       try {
         const r = await fetch(`https://www.faceit.com/api/users/v1/users/${player.id}`);
         const d = await r.json();
@@ -161,6 +176,7 @@ async function checkPlayersInLobby() {
         return null;
       }
     });
+    if (isStale()) return;
   } catch (error) {
     console.log("error: " + error);
     setScan({ running: false, state: "error", total: 0, done: 0, current: "Ошибка загрузки матча" });
@@ -173,6 +189,7 @@ async function checkPlayersInLobby() {
 
     let done1 = 0;
     await mapLimit(allPlayers, 3, async (player, i) => {
+      if (isStale()) return;
       await checkPlayerExact(player, profiles[i]);
       done1++;
       setScan({
@@ -184,6 +201,7 @@ async function checkPlayersInLobby() {
       });
     });
 
+    if (isStale()) return;
     setScan({ running: false, state: "done", total: allPlayers.length, done: allPlayers.length, current: "" });
     console.log("Фаза 1 завершена!");
   } catch (error) {
@@ -198,6 +216,7 @@ async function checkPlayersInLobby() {
 
     let done2a = 0;
     await mapLimit(allPlayers, 2, async (player) => {
+      if (isStale()) return;
       await checkPlayerSimilar(player, [0, 1]);
       done2a++;
       setScan({
@@ -209,6 +228,7 @@ async function checkPlayersInLobby() {
       });
     });
 
+    if (isStale()) return;
     setScan({ running: false, state: "done", total: allPlayers.length, done: allPlayers.length, current: "" });
     console.log("Фаза 2A завершена!");
   } catch (error) {
@@ -222,6 +242,7 @@ async function checkPlayersInLobby() {
 
     let done2b = 0;
     await mapLimit(allPlayers, 1, async (player) => {
+      if (isStale()) return;
       await checkPlayerSimilar(player, [2, 3]);
       done2b++;
       setScan({
@@ -256,7 +277,7 @@ async function checkPlayerExact(player, profile) {
     if (twChannel) {
       const status = await checkTwitchStatus(twChannel);
       if (status === "live") {
-        HideEnemy(twChannel, "TW");
+        notifyLive(twChannel, "TW");
         setPlayerTwitch(nickname, `https://www.twitch.tv/${twChannel}`);
         markLIVE(nickname, "twitch", "exact");
       } else if (status === "offline") {
@@ -269,15 +290,16 @@ async function checkPlayerExact(player, profile) {
   // ---- YouTube из Faceit-профиля ----
   if (!p.foundYoutubeExact && !p.foundYoutubeSimilar) {
     const ytUrl = profile?.socials?.youtube?.value;
-    if (ytUrl) {
-      const handle = cleanHandle(ytUrl);
-      const status = await checkYouTubeStatus(handle);
+    const ytPath = ytUrl ? youtubeChannelPath(ytUrl) : null;
+    if (ytPath) {
+      const status = await checkYouTubeStatus(ytPath);
+      const link = `https://www.youtube.com/${ytPath}`;
       if (status === "live") {
-        HideEnemy(handle, "YT");
-        setPlayerYoutube(nickname, ytUrl);
+        notifyLive(ytPath, "YT");
+        setPlayerYoutube(nickname, link);
         markLIVE(nickname, "youtube", "exact");
       } else if (status === "offline") {
-        setPlayerYoutube(nickname, ytUrl);
+        setPlayerYoutube(nickname, link);
       }
     }
   }
@@ -286,26 +308,29 @@ async function checkPlayerExact(player, profile) {
   if (steamId) {
     const links = await fetchSteamLinks(steamId);
     for (const link of links) {
-      if (!p.foundTwitchExact && !p.foundTwitchSimilar && link.includes("twitch.tv/")) {
-        const channel = link.trim().replace(/\/+$/, "").split("/").pop().split("?")[0];
-        const status = await checkTwitchStatus(channel);
+      const twChannel = twitchChannelFromUrl(link);
+      if (twChannel && !p.foundTwitchExact && !p.foundTwitchSimilar) {
+        const status = await checkTwitchStatus(twChannel);
+        const twLink = `https://www.twitch.tv/${twChannel}`;
         if (status === "live") {
-          HideEnemy(channel, "TW");
-          setPlayerTwitch(nickname, link);
+          notifyLive(twChannel, "TW");
+          setPlayerTwitch(nickname, twLink);
           markLIVE(nickname, "twitch", "exact");
         } else if (status === "offline" && !p.twitch) {
-          setPlayerTwitch(nickname, link);
+          setPlayerTwitch(nickname, twLink);
         }
       }
-      if (!p.foundYoutubeExact && !p.foundYoutubeSimilar && link.includes("youtube.com/")) {
-        const handle = cleanHandle(link);
-        const status = await checkYouTubeStatus(handle);
+
+      const ytPath = /youtube\.com\//i.test(link) ? youtubeChannelPath(link) : null;
+      if (ytPath && !p.foundYoutubeExact && !p.foundYoutubeSimilar) {
+        const status = await checkYouTubeStatus(ytPath);
+        const ytLink = `https://www.youtube.com/${ytPath}`;
         if (status === "live") {
-          HideEnemy(handle, "YT");
-          setPlayerYoutube(nickname, link);
+          notifyLive(ytPath, "YT");
+          setPlayerYoutube(nickname, ytLink);
           markLIVE(nickname, "youtube", "exact");
         } else if (status === "offline" && !p.youtube) {
-          setPlayerYoutube(nickname, link);
+          setPlayerYoutube(nickname, ytLink);
         }
       }
     }
@@ -315,16 +340,17 @@ async function checkPlayerExact(player, profile) {
   if (!p.foundTwitchExact && !p.foundTwitchSimilar) {
     const status = await checkTwitchStatus(nickname);
     if (status === "live") {
-      HideEnemy(nickname, "TW");
+      notifyLive(nickname, "TW");
       setPlayerTwitch(nickname, `https://www.twitch.tv/${nickname}`);
       markLIVE(nickname, "twitch", "exact");
     }
   }
   if (!p.foundYoutubeExact && !p.foundYoutubeSimilar) {
-    const status = await checkYouTubeStatus(nickname);
+    const ytPath = youtubeHandlePath(nickname);
+    const status = await checkYouTubeStatus(ytPath);
     if (status === "live") {
-      HideEnemy(nickname, "YT");
-      setPlayerYoutube(nickname, `https://www.youtube.com/@${nickname}/live`);
+      notifyLive(nickname, "YT");
+      setPlayerYoutube(nickname, `https://www.youtube.com/${ytPath}/live`);
       markLIVE(nickname, "youtube", "exact");
     }
   }
@@ -348,18 +374,21 @@ async function checkPlayerSimilar(player, bucketFilter) {
 
     if (!tw && (await checkTwitchStatus(variant)) === "live") {
       console.log(`${nickname} → похожий TW: ${variant}`);
-      HideEnemy(`${variant} (похож на ${nickname})`, "TW");
+      notifyLive(`${variant} (похож на ${nickname})`, "TW");
       setPlayerTwitch(nickname, `https://www.twitch.tv/${variant}`);
       markLIVE(nickname, "twitch", "similar");
       tw = true;
     }
 
-    if (!yt && (await checkYouTubeStatus(variant)) === "live") {
-      console.log(`${nickname} → похожий YT: ${variant}`);
-      HideEnemy(`${variant} (похож на ${nickname})`, "YT");
-      setPlayerYoutube(nickname, `https://www.youtube.com/@${variant}`);
-      markLIVE(nickname, "youtube", "similar");
-      yt = true;
+    if (!yt) {
+      const ytPath = youtubeHandlePath(variant);
+      if ((await checkYouTubeStatus(ytPath)) === "live") {
+        console.log(`${nickname} → похожий YT: ${variant}`);
+        notifyLive(`${variant} (похож на ${nickname})`, "YT");
+        setPlayerYoutube(nickname, `https://www.youtube.com/${ytPath}`);
+        markLIVE(nickname, "youtube", "similar");
+        yt = true;
+      }
     }
 
     if (tw && yt) break;
@@ -375,7 +404,7 @@ async function checkPlayerSimilar(player, bucketFilter) {
 async function fetchSteamLinks(steamId) {
   try {
     const response = await chrome.runtime.sendMessage({
-      action: "fetchSteam",
+      action: "FETCH_HTML",
       url: `https://steamcommunity.com/profiles/${steamId}`
     });
     if (!response?.success) return [];
@@ -412,13 +441,44 @@ function markLIVE(nickname, platform, confidence = "exact") {
   saveToStorage();
 }
 
-function cleanHandle(url) {
-  return url
-    .trim()
-    .replace(/\/+$/, "")
-    .split("/")
-    .pop()
-    .replace(/^@/, "");
+function toUrl(link) {
+  try {
+    return new URL(/^https?:\/\//i.test(link) ? link : `https://${link}`);
+  } catch {
+    return null;
+  }
+}
+
+// "https://www.twitch.tv/name/videos?x=1" → "name". Не Twitch-ссылка → null.
+function twitchChannelFromUrl(link) {
+  const url = toUrl(link.trim());
+  if (!url || !/(^|\.)twitch\.tv$/i.test(url.hostname)) return null;
+  const channel = url.pathname.split("/").filter(Boolean)[0];
+  return channel && TWITCH_LOGIN_RE.test(channel) ? channel.toLowerCase() : null;
+}
+
+// Путь канала YouTube для хэндла/ника: "nick" → "@nick".
+function youtubeHandlePath(handle) {
+  return "@" + encodeURIComponent(handle.trim().replace(/^@/, ""));
+}
+
+// Превращает ссылку или хэндл YouTube в путь канала:
+// "@handle", "channel/UC...", "c/name" или "user/name". Не канал → null.
+function youtubeChannelPath(input) {
+  const raw = input.trim();
+  if (!raw) return null;
+  if (!/youtube\.com|youtu\.be/i.test(raw)) {
+    return /^@?[^\s/?#]+$/.test(raw) ? youtubeHandlePath(raw) : null;
+  }
+
+  const url = toUrl(raw);
+  if (!url || !/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
+
+  const segs = url.pathname.split("/").filter(Boolean);
+  if (!segs.length) return null;
+  if (segs[0].startsWith("@")) return segs[0];
+  if (["channel", "c", "user"].includes(segs[0]) && segs[1]) return `${segs[0]}/${segs[1]}`;
+  return null;
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
@@ -429,32 +489,39 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 setTimeout(checkPlayersInLobby, 250);
 
+// Faceit — SPA: переход в комнату матча не перезагружает страницу,
+// поэтому следим за сменой URL и запускаем скан для нового матча.
+setInterval(() => {
+  const matchId = getMatchIdFromUrl();
+  if (matchId && matchId !== lastMatchId) checkPlayersInLobby();
+}, 1000);
+
 // ============================================================
 // ПРОВЕРКА СТАТУСА КАНАЛОВ
 // Возвращает "live" | "offline" | "none"
 // ============================================================
 
 // Проверка статуса Twitch-канала.
+// decapi.me/twitch/uptime отвечает:
+//   "<channel> is offline"              — не стримит (или канала нет)
+//   "1 hour, 2 minutes, 3 seconds"      — стримит, это аптайм эфира
 async function checkTwitchStatus(channelName) {
-  if (!channelName) return "none";
-  return getLive(`tw:${channelName}`, async () => {
+  if (!channelName || !TWITCH_LOGIN_RE.test(channelName)) return "none";
+  const channel = channelName.toLowerCase();
+  return getLive(`tw:${channel}`, async () => {
     try {
-      const response = await fetch(`https://decapi.me/twitch/uptime/${channelName}`);
+      const response = await fetch(`https://decapi.me/twitch/uptime/${channel}`);
       if (!response.ok) return "none";
       const text = (await response.text()).toLowerCase().trim();
 
-      // Явные негативы / ошибки — канал не найден.
-      if (text.includes("not found")) return "none";
-      if (text.includes("no user")) return "none";
-      if (text.includes("does not exist")) return "none";
-      if (text.includes("error")) return "none";
-      if (text.includes("no such")) return "none";
-
       // Явный оффлайн.
-      if (text.includes("offline")) return "offline";
+      if (text.endsWith("is offline")) return "offline";
 
-      // Явный лайв — единственный вариант, при котором ставим LIVE.
-      if (text.includes("is live") || text.includes("is streaming")) return "live";
+      // Явные негативы / ошибки — канал не найден.
+      if (/not found|no user|does not exist|error|no such/.test(text)) return "none";
+
+      // Аптайм эфира — единственный вариант, при котором ставим LIVE.
+      if (/\b\d+\s+(second|minute|hour|day)s?\b/.test(text)) return "live";
 
       // Непонятный ответ — не рискуем помечать как live.
       return "none";
@@ -466,13 +533,14 @@ async function checkTwitchStatus(channelName) {
 }
 
 // Проверка статуса YouTube-канала.
-async function checkYouTubeStatus(handle) {
-  if (!handle) return "none";
-  return getLive(`yt:${handle}`, async () => {
-    const url = `https://www.youtube.com/@${handle}/live`;
+// channelPath — результат youtubeChannelPath / youtubeHandlePath.
+async function checkYouTubeStatus(channelPath) {
+  if (!channelPath) return "none";
+  return getLive(`yt:${channelPath.toLowerCase()}`, async () => {
+    const url = `https://www.youtube.com/${channelPath}/live`;
     try {
       const response = await chrome.runtime.sendMessage({
-        action: "fetchSteam",
+        action: "FETCH_HTML",
         url: url
       });
       if (!response || !response.success) return "none";
@@ -486,11 +554,11 @@ async function checkYouTubeStatus(handle) {
       const isWatchPage = /youtube\.com\/watch\?v=/.test(canonical);
       const isChannelPage = /youtube\.com\/(@|channel\/|c\/|user\/)/.test(canonical);
 
+      // "isLiveContent" есть и у записей прошедших эфиров, поэтому
+      // смотрим только на маркеры идущего эфира и исключаем анонсы.
       const hasLive =
-        html.includes('"isLive":true') ||
-        html.includes('"isLiveNow":true') ||
-        html.includes('"isLiveContent":true') ||
-        html.includes('"status":"LIVE"');
+        (html.includes('"isLiveNow":true') || html.includes('"isLive":true')) &&
+        !html.includes('"isUpcoming":true');
 
       // LIVE: только если это watch-страница И есть live-маркер.
       if (isWatchPage && hasLive) return "live";
@@ -510,10 +578,10 @@ async function checkYouTubeStatus(handle) {
 // СЛУЖЕБНОЕ
 // ============================================================
 
-function HideEnemy(name, x) {
+function notifyLive(name, platform) {
   chrome.runtime.sendMessage({
     action: "SHOW_NOTIF",
-    message: `${name}: ${x}`
+    message: `${name}: ${platform}`
   });
 }
 

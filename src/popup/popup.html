@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FACEIT StreamSniping</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-header">
+    <div class="logo">
+      <span class="dot"></span>
+      FACEIT LIVE STREAMS
+      <span class="sub">STREAM SNIPER</span>
+    </div>
+    <div class="header-actions">
+      <div id="statusPill" class="status-pill"></div>
+      <button id="btnRefresh" class="btn-refresh" title="Сканировать заново">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="progressWrap" class="progress-wrap">
+    <div class="progress-text">
+      <span id="progressLabel">Проверка игроков...</span>
+      <span id="progressCount" class="current"></span>
+    </div>
+    <div class="progress-bar"><div id="progressFill" class="fill"></div></div>
+  </div>
+
+  <div class="content">
+    <div id="teamsContainer" class="teams-container">
+      <div class="team-card team-faction1">
+        <div class="team-header" id="team1Title">Команда 1</div>
+        <div class="players-list" id="team1List"></div>
+      </div>
+      <div class="team-card team-faction2">
+        <div class="team-header" id="team2Title">Команда 2</div>
+        <div class="players-list" id="team2List"></div>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">🎮</div>
+      <div class="empty-text">Откройте комнату матча Faceit</div>
+      <div class="empty-sub">Расширение само определит игроков и проверит стримы</div>
+      <div class="empty-hint">
+        Требуется страница вида<br><b>faceit.com/room/…</b>
+      </div>
+      <button id="btnOpenFaceit" class="btn-open">Открыть Faceit</button>
+    </div>
+  </div>
+
+  <div class="footer" id="footerText">Анализ и проверка каналов в реальном времени</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
